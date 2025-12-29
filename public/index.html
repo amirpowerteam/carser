@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="description" content="پادکست کتاب‌جیبی — خلاصه کتاب‌ها و اپیزودهای صوتی">
+    <meta property="og:title" content="پادکست کتاب جیبی">
+    <meta property="og:description" content="خلاصه کتاب‌ها به شکل صوتی؛ شنیدن و یادگیری سریع">
+    <meta property="og:image" content="/hero.svg">
+    <meta property="og:type" content="website">
+    <title>کتاب جیبی - نسخه نمونه</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="icon" href="/logo.svg" type="image/svg+xml">
+    <style>
+      /* Sticky footer audio player */
+      .sticky-player{position:fixed;left:16px;right:16px;bottom:16px;background:rgba(10,10,10,0.92);color:#fff;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:12px;z-index:9999}
+      .sticky-player .btn{background:transparent;border:0;color:inherit;font-size:18px;cursor:pointer}
+      .sticky-player .label{min-width:120px}
+      .search-modal{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:flex-start;justify-content:center;padding-top:80px;z-index:10000}
+      .search-modal .panel{background:#0f0f11;color:#fff;padding:18px;border-radius:8px;width:min(880px,96%);max-height:70vh;overflow:auto}
+      .search-results .item{padding:8px 6px;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer}
+    </style>
+  </head>
+  <body class="rtl">
+    <div class="container">
+      <header class="navbar">
+        <div class="platform-icons" aria-hidden="true">
+          <a href="#" title="Spotify">🎧</a>
+          <a href="#" title="Apple"></a>
+          <a href="#" title="YouTube">▶️</a>
+          <a href="#" title="Telegram">✈️</a>
+        </div>
+        
+        <div class="nav-center">
+          <nav class="nav-links">
+            <a class="tab" href="/">خانه</a>
+            <a class="tab" href="/readables">خواندنی‌ها</a>
+            <a class="tab" href="/episodes">اپیزودها</a>
+            <a class="tab" href="/sponsor.html">اسپانسر شوید</a>
+            <a class="tab" href="/contact.html">تماس با ما</a>
+            <a class="tab" href="/sponsor.html">حمایت مالی</a>
+          </nav>
+          <div class="search-wrap">
+            <span style="position:relative;display:inline-flex;align-items:center;gap:8px">
+              <button id="searchIcon" class="theme-toggle" title="جستجو" style="padding:8px;border-radius:8px;margin-left:8px">🔍</button>
+              <input id="siteSearch" type="search" class="search" placeholder="جستجو...">
+            </span>
+          </div>
+        </div>
+        <div class="logo">
+          <img src="/logo.svg" alt="کتاب‌جیبی" class="site-logo">
+        </div>
+        <button id="themeToggle" class="theme-toggle" title="تغییر حالت روز/شب">🌙</button>
+      </header>
+
+      <main>
+        <section id="siteNote" style="background:#fff3bf;color:#000;padding:10px;border-radius:8px;margin:12px 0;direction:rtl;display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div>
+            <strong>یادداشت تیم:</strong>
+            <span id="siteNoteText">این یادداشت برای یادآوری بقیهٔ کارها قرار گرفت — لطفاً امروز ادامهٔ کارها را انجام دهید.</span>
+          </div>
+          <div>
+            <button id="dismissNote" style="background:#222;color:#fff;border:0;padding:6px 10px;border-radius:6px;cursor:pointer">بستن</button>
+          </div>
+        </section>
+        <section class="hero">
+          <div class="hero-wrapper">
+            <div class="hero-cover" id="heroCover">
+              <img id="heroImg" alt="hero cover" />
+              <div class="hero-content">
+                <h1 id="heroTitle">در انتظار اپیزود جدید</h1>
+                <p class="summary" id="heroSummary">خلاصه کوتاه اپیزودِ جدید اینجا نمایش داده می‌شود.</p>
+                <div class="hero-controls">
+                  <button class="play-pill" id="heroPlay"><span class="icon">▶</span><span class="label">Play</span></button>
+                  <span class="meta" id="heroMeta">—</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="stats" aria-label="آمار سایت">
+          <div id="statEpisodes">0 اپیزود</div>
+          <div id="statListeners">0 شنونده</div>
+          <div id="statArchive">آرشیو کتابی</div>
+        </section>
+
+        <section class="filters" style="margin-top:18px">
+          <div id="categoryChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        </section>
+
+        <section class="grid" id="episodeGrid" aria-label="فهرست اپیزودها">
+          <!-- episode cards will be injected here -->
+        </section>
+
+        <section class="uploads" style="margin-top:18px">
+          <h3>آخرین آپلودها</h3>
+          <div id="uploadsList"></div>
+        </section>
+      </main>
+
+      <footer class="sponsor">
+        <div>حمایت از پادکست — همراه با لینک پرداخت</div>
+        <div style="margin-top:8px">
+          <a class="cta" href="/sponsor.html">حمایت کن</a>
+        </div>
+      </footer>
+
+      
+    </div>
+    <script>
+      (function(){
+        try{
+          const note = document.getElementById('siteNote');
+          const btn = document.getElementById('dismissNote');
+          if(!note || !btn) return;
+          if(localStorage.getItem('kj_site_note_hidden')==='1'){ note.style.display='none'; return; }
+          btn.addEventListener('click', ()=>{ note.style.display='none'; localStorage.setItem('kj_site_note_hidden','1'); });
+        }catch(e){}
+      })();
+    </script>
+
+    <script src="/js/audio.js"></script>
+    <script src="/js/pjax.js"></script>
+    <script>
+      // small nav active helper
+      (function(){
+        const links = document.querySelectorAll('.nav-links a');
+        links.forEach(a=>{ if(a.getAttribute('href')===location.pathname) a.classList.add('active'); });
+      })();
+
+      const apPlay = document.getElementById('ap-play');
+      // shared Audio controller to avoid DOM audio collisions
+      const audio = (function(){
+        if(window.sharedPlayer) return window.sharedPlayer;
+        const p = new Audio();
+        // preload full resource so the browser can buffer and start playback faster
+        p.preload = 'auto';
+        // allow cross-origin requests when streaming from /media
+        try{ p.crossOrigin = 'anonymous'; }catch(e){}
+        window.sharedPlayer = p;
+        window.sharedPlayerState = window.sharedPlayerState || { currentPlayBtn: null };
+        return p;
+      })();
+      const sharedState = window.sharedPlayerState;
+      // debug: attach listeners to observe playback events and readyState
+      try{
+        ['loadstart','progress','canplay','canplaythrough','playing','waiting','stalled','error'].forEach(ev=>{
+          audio.addEventListener(ev, ()=>{
+            try{ console.debug('audio.event', ev, { paused: audio.paused, readyState: audio.readyState, currentTime: audio.currentTime }); }catch(e){}
+          });
+        });
+      }catch(e){}
+      function updateApIcon(playing){
+        try{
+          const ic = apPlay && apPlay.querySelector('.icon');
+          if(ic) ic.textContent = playing ? '⏸' : '▶';
+          if(apPlay) { if(playing) apPlay.classList.add('active'); else apPlay.classList.remove('active'); }
+        }catch(e){}
+      }
+      function setButtonPlaying(btn, playing){
+        try{
+          if(!btn) return;
+          const ic = btn.querySelector && btn.querySelector('.icon');
+          if(ic) ic.textContent = playing ? '⏸' : '▶';
+          if(playing) btn.classList.add('active'); else btn.classList.remove('active');
+        }catch(e){}
+      }
+      function setPlayingSource(src, btn){
+        if(!src) return;
+        // Use KJAudio API when available to ensure singleton playback
+        const kj = window.KJAudio;
+        const perform = async ()=>{
+          try{
+            // attempt to set source via KJAudio which performs HEAD check
+            if(kj){
+              const ok = await kj.setSource(src);
+              if(!ok){
+                console.warn('KJAudio setSource failed for', src);
+                if(btn){ btn.disabled = false; const ic = btn.querySelector('.icon'); if(ic) ic.textContent = '▶'; }
+                updateApIcon(false);
+                return;
+              }
+              // feedback while buffering
+              if(btn){ btn.disabled = true; const ic = btn.querySelector('.icon'); if(ic) ic.textContent = '⏳'; }
+              const played = await kj.play().catch(()=>false);
+              if(played){ document.querySelectorAll('.play-pill').forEach(p=>setButtonPlaying(p, false)); if(btn) setButtonPlaying(btn, true); updateApIcon(true); sharedState.currentPlayBtn = btn || null; if(btn) btn.disabled = false; }
+              else { if(btn){ btn.disabled = false; const ic = btn.querySelector('.icon'); if(ic) ic.textContent = '▶'; } updateApIcon(false); }
+              return;
+            }
+            // fallback: direct audio handling
+            audio.src = src;
+            try{ audio.load(); }catch(e){}
+            audio.play().catch(()=>{});
+          }catch(e){ console.error('setPlayingSource failed', e); }
+        };
+        perform();
+      }
+
+      if(apPlay){
+        apPlay.addEventListener('click', () => {
+          try{
+            const kj = window.KJAudio;
+            if(kj){
+              const st = kj.getState();
+              if(!st.src) return;
+              if(st.paused){ kj.play().then(()=>{ updateApIcon(true); if(sharedState.currentPlayBtn) setButtonPlaying(sharedState.currentPlayBtn, true); }).catch(e=>console.warn('KJAudio play failed', e)); }
+              else { try{ kj.pause(); }catch(e){} updateApIcon(false); document.querySelectorAll('.play-pill').forEach(p=>setButtonPlaying(p, false)); }
+            } else {
+              if (!audio.src) return;
+              if (audio.paused) {
+                audio.play().then(()=>{ updateApIcon(true); if(sharedState.currentPlayBtn) setButtonPlaying(sharedState.currentPlayBtn, true); }).catch(e=>console.warn('play failed', e));
+              } else {
+                try{ audio.pause(); }catch(err){ console.error('audio.pause failed', err); }
+                updateApIcon(false); document.querySelectorAll('.play-pill').forEach(p=>setButtonPlaying(p, false));
+              }
+            }
+          }catch(e){ console.error(e); }
+        });
+      }
+      // keep icon in sync with actual audio events (covers external changes)
+      audio.addEventListener('play', ()=>{ updateApIcon(true); });
+      audio.addEventListener('pause', ()=>{ updateApIcon(false); document.querySelectorAll('.play-pill').forEach(p=>setButtonPlaying(p, false)); });
+
+      // --- Sticky player controls & persistence ---
+      // Access sticky player elements lazily to avoid errors when the script
+      // runs before the DOM nodes exist (inline script appears before markup).
+      function showStickyFor(src,label){
+        const stickyEl = document.getElementById('stickyPlayer');
+        const spLabelEl = document.getElementById('spLabel');
+        const spSpeedEl = document.getElementById('spSpeed');
+        if(!stickyEl) return;
+        if(!src){ stickyEl.style.display='none'; return }
+        stickyEl.style.display='flex';
+        if(spLabelEl) spLabelEl.textContent = label || src.split('/').pop();
+        try{ const cur = localStorage.getItem('kj_player_speed') || '1.25'; if(spSpeedEl) spSpeedEl.value = cur; audio.playbackRate = Number(cur); }catch(e){}
+      }
+
+      const spPlayEl = document.getElementById('spPlay');
+      const spBackEl = document.getElementById('spBack');
+      const spFwdEl = document.getElementById('spFwd');
+      const spSpeedEl = document.getElementById('spSpeed');
+
+      if(spPlayEl) spPlayEl.addEventListener('click', ()=>{
+        try{
+          const kj = window.KJAudio;
+          if(kj){ const st = kj.getState(); if(st.paused) kj.play().catch(()=>{}); else kj.pause(); }
+          else { if(audio.paused) audio.play().catch(()=>{}); else audio.pause(); }
+        }catch(e){}
+      });
+      if(spBackEl) spBackEl.addEventListener('click', ()=>{ try{ const kj = window.KJAudio; if(kj) kj.seek(Math.max(0, (kj.getState().time||0) - 15)); else audio.currentTime = Math.max(0, audio.currentTime - 15); }catch(e){} });
+      if(spFwdEl) spFwdEl.addEventListener('click', ()=>{ try{ const kj = window.KJAudio; const dur = kj ? (kj.getState().duration||0) : (audio.duration||0); const cur = kj ? (kj.getState().time||0) : audio.currentTime; if(kj) kj.seek(Math.min(dur, cur + 15)); else audio.currentTime = Math.min(dur, audio.currentTime + 15); }catch(e){} });
+      if(spSpeedEl) spSpeedEl.addEventListener('change', ()=>{ try{ const kj = window.KJAudio; if(kj) kj.setRate(Number(spSpeedEl.value)); else audio.playbackRate = Number(spSpeedEl.value); localStorage.setItem('kj_player_speed', spSpeedEl.value); }catch(e){} });
+
+      // Persist player state periodically
+      setInterval(()=>{
+        try{
+          if(!audio.src) return;
+          const state = { src: audio.src, time: Math.floor(audio.currentTime), paused: audio.paused, speed: audio.playbackRate };
+          localStorage.setItem('kj_player_state', JSON.stringify(state));
+        }catch(e){}
+      }, 1000);
+
+      // Restore if present
+      try{
+        const saved = localStorage.getItem('kj_player_state');
+        if(saved){ const s = JSON.parse(saved); if(s && s.src){ audio.src = s.src; audio.currentTime = s.time || 0; audio.playbackRate = s.speed || 1; showStickyFor(s.src, 'در حال پخش'); if(!s.paused) audio.play().catch(()=>{}); } }
+      }catch(e){}
+
+      // reflect play/pause in sticky button
+      audio.addEventListener('play', ()=>{ if(spPlay) spPlay.textContent = '⏸'; showStickyFor(audio.src); });
+      audio.addEventListener('pause', ()=>{ if(spPlay) spPlay.textContent = '▶'; });
+
+      // Update setPlayingSource to reveal sticky player when starting
+      const _oldSetPlayingSource = setPlayingSource.bind(window);
+      window.setPlayingSource = function(src, btn){ _oldSetPlayingSource(src, btn); showStickyFor(src); };
+
+      // hero elements
+      const heroCover = document.getElementById('heroCover');
+      const heroImg = document.getElementById('heroImg');
+      if(heroImg){
+        // if image fails to load, hide it and fall back to neutral background (no inner SVG frame)
+        heroImg.onerror = ()=>{ try{ heroImg.style.display='none'; heroImg.src=''; heroCover.style.backgroundImage = ''; heroCover.style.backgroundColor = 'var(--muted-bg)'; }catch(e){} };
+      }
+      const heroTitle = document.getElementById('heroTitle');
+      const heroSummary = document.getElementById('heroSummary');
+      const heroMeta = document.getElementById('heroMeta');
+      const heroPlay = document.getElementById('heroPlay');
+
+      const statEpisodes = document.getElementById('statEpisodes');
+      const statListeners = document.getElementById('statListeners');
+
+      const categoryChips = document.getElementById('categoryChips');
+      const episodeGrid = document.getElementById('episodeGrid');
+
+      const uploadsList = document.getElementById('uploadsList');
+
+      let allUploads = [];
+      // if user manually selected a hero item (by clicking a card), lock
+      // automatic updates for a short period so polling won't override it
+      let heroUserLocked = false;
+      let heroLockTimer = null;
+
+      async function fetchUploads(){
+        try{
+          // fetch with timeout to avoid hanging the UI
+          const controller = new AbortController();
+          const timeout = setTimeout(()=> controller.abort(), 8000);
+          const res = await fetch('/api/uploads', { signal: controller.signal });
+          clearTimeout(timeout);
+          if(!res.ok) throw new Error('server returned ' + res.status);
+          allUploads = await res.json();
+          renderUploads(allUploads);
+          renderEpisodeGrid(allUploads);
+          populateHero(allUploads);
+          renderStats(allUploads);
+          renderCategories(allUploads);
+        }catch(e){
+          console.error('fetchUploads failed', e);
+          allUploads = [];
+          try{ renderUploads([]); renderEpisodeGrid([]); renderStats([]); }catch(err){}
+          // set a safe placeholder hero so page isn't empty
+          try{ setHeroItem({ title: 'کتاب‌جیبی', description: 'ارتباط با سرور برقرار نشد', mime: '' }); }catch(err){}
+          const uploadsList = document.getElementById('uploadsList');
+          if(uploadsList) uploadsList.textContent = 'خطا در بارگزاری اپیزودها — لطفاً سرور را بررسی کنید.';
+        }
+      }
+
+      function renderUploads(items){
+        uploadsList.innerHTML = '';
+        if(!items || items.length===0){ uploadsList.textContent = 'هیچ موردی آپلود نشده.'; return }
+        for(const it of items){
+          const el = document.createElement('div');
+          el.className = 'upload-item';
+          const title = document.createElement('h4'); title.textContent = it.title;
+          const meta = document.createElement('div'); meta.className = 'meta'; meta.textContent = `${new Date(it.createdAt).toLocaleString()} ${it.originalName?('- '+it.originalName):''}`;
+          el.appendChild(title);
+          el.appendChild(meta);
+          if(it.textContent){ const p = document.createElement('p'); p.textContent = it.textContent; el.appendChild(p); }
+          const controlsWr = document.createElement('div'); controlsWr.style.marginTop = '8px';
+          if(it.file){
+            const playBtn = document.createElement('button');
+            playBtn.className = 'play-pill small';
+            playBtn.innerHTML = `<span class="icon">▶</span><span class="label">Play</span>`;
+            playBtn.addEventListener('click', (e)=>{
+              e.stopPropagation();
+              // compare current audio src by pathname to avoid mismatches between
+              // absolute URLs (audio.src) and stored relative paths (it.file)
+              let playingSame = false;
+              try{
+                const curPath = audio.src ? new URL(audio.src, location.origin).pathname : '';
+                playingSame = (curPath === it.file);
+              }catch(e){
+                playingSame = (audio.src === it.file);
+              }
+              if(playingSame && !audio.paused){
+                audio.pause();
+                document.querySelectorAll('.play-pill').forEach(p=>setButtonPlaying(p, false));
+                const ic = apPlay && apPlay.querySelector('.icon'); if(ic) ic.textContent = '▶';
+              } else setPlayingSource(it.file, playBtn);
+            });
+            controlsWr.appendChild(playBtn);
+            const a = document.createElement('a'); a.href = it.file; a.target = '_blank'; a.textContent = 'دانلود/مشاهده فایل';
+            controlsWr.appendChild(a);
+          } else if(it.textContent){
+            const view = document.createElement('a'); view.href = `/episode.html?id=${it.id}`; view.textContent = 'مشاهدهٔ جزئیات'; controlsWr.appendChild(view);
+          }
+          // upload cover control for list view
+          // note: upload controls removed from home page (use admin page to upload/replace files)
+          el.appendChild(controlsWr);
+          uploadsList.appendChild(el);
+        }
+      }
+
+      function renderEpisodeGrid(items){
+        episodeGrid.innerHTML = '';
+        if(!items || items.length===0) { episodeGrid.textContent = 'هیچ اپیزودی موجود نیست.'; return }
+        for(const it of items){
+          const card = document.createElement('article'); card.className = 'card';
+          const thumb = document.createElement('div'); thumb.className = 'thumb';
+          const coverUrl = it.cover || (it.file && it.mime && it.mime.startsWith('image/') ? it.file : '/placeholder.svg');
+          thumb.style.backgroundImage = `url('${coverUrl}')`;
+          card.appendChild(thumb);
+          const h3 = document.createElement('h3');
+          // show the admin `title` if present, otherwise fallback to `description`
+          h3.textContent = it.title || it.description || 'اپیزود';
+          card.appendChild(h3);
+          if(it.description){ const descEl = document.createElement('p'); descEl.className = 'card-desc'; descEl.textContent = it.description; card.appendChild(descEl); }
+          const meta = document.createElement('div'); meta.className = 'meta'; meta.textContent = it.mime || '';
+          card.appendChild(meta);
+          const controls = document.createElement('div'); controls.style.marginTop='8px';
+          const playBtn = document.createElement('button'); playBtn.className='play-pill small'; playBtn.innerHTML = `<span class="icon">▶</span><span class="label">Play</span>`;
+          playBtn.addEventListener('click', (e)=>{
+            e.stopPropagation();
+            let playingSame = false;
+            try{
+              const curPath = audio.src ? new URL(audio.src, location.origin).pathname : '';
+              playingSame = (curPath === it.file);
+            }catch(e){
+              playingSame = (audio.src === it.file);
+            }
+            if(playingSame && !audio.paused){
+              audio.pause();
+              document.querySelectorAll('.play-pill').forEach(p=>setButtonPlaying(p, false));
+                const ic = apPlay && apPlay.querySelector('.icon'); if(ic) ic.textContent = '▶';
+            } else setPlayingSource(it.file, playBtn);
+          });
+          controls.appendChild(playBtn);
+          // upload controls removed on index page; use admin UI for uploads
+          card.appendChild(controls);
+          // clicking the whole card should set this item into the hero and scroll up
+          card.addEventListener('click', (e)=>{
+            // prevent any default navigation (some browsers or overlays might open links)
+            try{ e.preventDefault(); e.stopPropagation(); }catch(err){}
+            // mark as user-selected so subsequent poll updates don't immediately override
+            try{ heroUserLocked = true; if(heroLockTimer) clearTimeout(heroLockTimer); heroLockTimer = setTimeout(()=>{ heroUserLocked = false; heroLockTimer = null; }, 60_000); }catch(e){}
+            setHeroItem(it, { user: true });
+            try{ window.scrollTo({ top: 0, behavior: 'smooth' }); }catch(e){ window.scrollTo(0,0); }
+          });
+          episodeGrid.appendChild(card);
+        }
+      }
+
+      function populateHero(items){
+        if(!items || items.length===0) return;
+        // prefer the first item that has an explicit cover; otherwise fallback to the newest item
+        const it = items.find(i => i.cover) || items[0];
+        setHeroItem(it);
+      }
+
+      function setHeroItem(it, opts){
+        if(!it) return;
+        // if user locked the hero (clicked a card recently), ignore automatic updates
+        if(heroUserLocked && !(opts && opts.user)) return;
+        // Prefer `title` for the hero heading; fall back to `description` if title missing
+        heroTitle.textContent = it.title || it.description || '';
+        // keep textContent (longer notes) or description in the summary area
+        heroSummary.textContent = it.textContent || it.description || '';
+        heroMeta.textContent = it.mime || '';
+        // prefer explicit cover; fallback to file if it's an image, otherwise placeholder
+        const coverUrl = it.cover || (it.file && it.mime && it.mime.startsWith('image/') ? it.file : '/hero.svg');
+        // set image src for reliable object-fit handling; show img and clear CSS background
+        if(heroImg){ heroImg.style.display='block'; heroImg.src = coverUrl; }
+        // clear any bg fallback and use image area
+        try{ heroCover.style.backgroundImage = ''; heroCover.style.backgroundColor = ''; }catch(e){}
+        if(it.file && it.mime && it.mime.startsWith('audio')){
+          heroPlay.onclick = ()=>{
+            let playingSame = false;
+            try{ const curPath = audio.src ? new URL(audio.src, location.origin).pathname : ''; playingSame = (curPath === it.file); }
+            catch(e){ playingSame = (audio.src === it.file); }
+            if(playingSame && !audio.paused){
+              audio.pause(); document.querySelectorAll('.play-pill').forEach(p=>setButtonPlaying(p, false)); const ic = apPlay && apPlay.querySelector('.icon'); if(ic) ic.textContent = '▶';
+              return;
+            }
+            setPlayingSource(it.file, heroPlay);
+          };
+        } else {
+          if(heroPlay) heroPlay.onclick = null;
+        }
+      }
+
+      function renderStats(items){
+        statEpisodes.textContent = (items.length||0) + ' اپیزود';
+        // listeners placeholder
+        statListeners.textContent = '0+ شنونده';
+      }
+
+      function renderCategories(items){
+        const cats = new Set();
+        items.forEach(it => { if(it.description) { const m = it.description.split('•'); if(m[1]) cats.add(m[1].trim()); } });
+        categoryChips.innerHTML='';
+        const all = document.createElement('button'); all.className='tab active'; all.textContent='همه';
+        all.addEventListener('click', ()=>{
+          // set active state
+          categoryChips.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+          all.classList.add('active');
+          renderEpisodeGrid(allUploads);
+        });
+        categoryChips.appendChild(all);
+        cats.forEach(c=>{
+          const b = document.createElement('button'); b.className='tab'; b.textContent=c;
+          b.addEventListener('click', ()=>{
+            categoryChips.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+            b.classList.add('active');
+            renderEpisodeGrid(allUploads.filter(it=> (it.description||'').includes(c)));
+          });
+          categoryChips.appendChild(b);
+        });
+      }
+
+      // load existing uploads on page load
+      fetchUploads();
+      // poll for updates so admin edits appear on the public page without manual refresh
+      setInterval(fetchUploads, 8000);
+      // Listen for cross-tab notifications from admin to refresh immediately
+      window.addEventListener('storage', (e) => {
+        try{
+          if(e.key === 'kj_updates') fetchUploads();
+        }catch(err){}
+      });
+
+      // Search binding: realtime filter by title or originalName
+      const searchEl = document.getElementById('siteSearch');
+      if(searchEl){
+        let last = '';
+        searchEl.addEventListener('input', (e)=>{
+          const q = (e.target.value||'').trim().toLowerCase();
+          if(q === last) return; last = q;
+          if(!q) return renderEpisodeGrid(allUploads);
+          const filtered = allUploads.filter(it => (it.title||'').toLowerCase().includes(q) || (it.originalName||'').toLowerCase().includes(q) || (it.description||'').toLowerCase().includes(q));
+          renderEpisodeGrid(filtered);
+        });
+      }
+
+      // --- Search modal behavior ---
+      const siteSearch = document.getElementById('siteSearch');
+      const searchModal = document.getElementById('searchModal');
+      const searchInputModal = document.getElementById('searchInputModal');
+      const searchResults = document.getElementById('searchResults');
+      const searchClose = document.getElementById('searchClose');
+
+      function openSearch(query){
+        if(!searchModal) return;
+        searchModal.style.display = 'flex';
+        if(searchInputModal){ searchInputModal.value = query||''; searchInputModal.focus(); }
+        performSearch(query||'');
+      }
+      function closeSearch(){ if(searchModal){ searchModal.style.display='none'; } if(searchResults) searchResults.innerHTML=''; }
+
+      async function performSearch(q){
+        try{
+          const res = await fetch('/api/uploads');
+          if(!res.ok) return;
+          const items = await res.json();
+          const out = items.filter(it=> (it.title||'').toLowerCase().includes(q.toLowerCase()) || (it.description||'').toLowerCase().includes(q.toLowerCase()) || (it.originalName||'').toLowerCase().includes(q.toLowerCase()));
+          if(!searchResults) return;
+          searchResults.innerHTML = '';
+          if(out.length===0) searchResults.textContent = 'نتیجه‌ای یافت نشد.';
+          for(const it of out){
+            const el = document.createElement('div'); el.className='item'; el.textContent = (it.title||it.originalName||'اپیزود');
+            el.addEventListener('click', ()=>{ closeSearch(); setHeroItem(it); setPlayingSource(it.file, null); });
+            searchResults.appendChild(el);
+          }
+        }catch(e){ console.error(e); }
+      }
+
+      if(siteSearch){ siteSearch.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ openSearch(siteSearch.value); } }); }
+      if(searchClose) searchClose.addEventListener('click', closeSearch);
+      if(searchInputModal) searchInputModal.addEventListener('input', (e)=>performSearch(e.target.value));
+
+      // --- Keyboard shortcuts ---
+      // `/` opens search when not typing; `Ctrl+K` and `Alt+/` are alternatives; `Esc` closes.
+      document.addEventListener('keydown', (e) => {
+        try{
+          const active = document.activeElement;
+          const isTyping = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+          // Ctrl+K or Cmd+K
+          if ((e.ctrlKey || e.metaKey) && e.key && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            openSearch('');
+            return;
+          }
+          // Alt+/ (alternative for browsers that capture plain '/')
+          if (e.altKey && e.key === '/') {
+            e.preventDefault();
+            openSearch('');
+            return;
+          }
+          // plain / when not typing (no modifiers)
+          if (!e.metaKey && !e.ctrlKey && !e.altKey && e.key === '/' && !isTyping) {
+            e.preventDefault();
+            openSearch('');
+            return;
+          }
+          if (e.key === 'Escape') {
+            closeSearch();
+            if(active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) active.blur();
+          }
+        }catch(err){}
+      });
+
+      // Global audio persistence: save current play src and time
+      function saveAudioState(){
+        try{
+          const state = { src: audio.src||null, time: Math.floor(audio.currentTime||0), paused: audio.paused };
+          localStorage.setItem('kj_audio', JSON.stringify(state));
+        }catch(e){ }
+      }
+
+      function restoreAudioState(){
+        try{
+          const s = localStorage.getItem('kj_audio'); if(!s) return;
+          const st = JSON.parse(s);
+          if(st.src){ audio.src = st.src; audio.currentTime = st.time||0; if(!st.paused){ audio.play().then(()=>{ updateApIcon(true); }).catch(()=>{}); } }
+        }catch(e){ }
+      }
+
+      // save periodically and on pause/seek
+      audio.addEventListener('pause', saveAudioState);
+      audio.addEventListener('play', saveAudioState);
+      audio.addEventListener('timeupdate', ()=>{ if(!audio.paused && Math.floor(audio.currentTime) % 5 === 0) saveAudioState(); });
+      restoreAudioState();
+      // keep UI in sync when audio stops/pauses — reset icons and re-enable any disabled play buttons
+      audio.addEventListener('pause', ()=>{
+        document.querySelectorAll('.play-pill').forEach(p=>{
+          try{ setButtonPlaying(p, false); p.disabled = false; }catch(e){}
+        });
+        const ic = apPlay && apPlay.querySelector('.icon'); if(ic) ic.textContent = '▶';
+      });
+      audio.addEventListener('ended', ()=>{
+        document.querySelectorAll('.play-pill').forEach(p=>{
+          try{ setButtonPlaying(p, false); p.disabled = false; }catch(e){}
+        });
+        const ic = apPlay && apPlay.querySelector('.icon'); if(ic) ic.textContent = '▶';
+      });
+      // apply site theme from localStorage (if set)
+      (function(){
+        try{
+          const t = localStorage.getItem('site-theme') || 'light';
+          if(t === 'dark') document.documentElement.classList.add('dark-mode');
+          const themeToggle = document.getElementById('themeToggle');
+          if(themeToggle){ themeToggle.textContent = document.documentElement.classList.contains('dark-mode') ? '☀️' : '🌙';
+            themeToggle.addEventListener('click', ()=>{
+              const cur = document.documentElement.classList.contains('dark-mode') ? 'dark' : 'light';
+              const next = cur === 'dark' ? 'light' : 'dark';
+              if(next === 'dark') document.documentElement.classList.add('dark-mode'); else document.documentElement.classList.remove('dark-mode');
+              themeToggle.textContent = next === 'dark' ? '☀️' : '🌙';
+              localStorage.setItem('site-theme', next);
+            });
+          }
+        }catch(e){}
+      })();
+    </script>
+
+    <!-- Sticky audio player -->
+    <div id="stickyPlayer" class="sticky-player" aria-hidden="false" style="display:none">
+      <button id="spBack" class="btn" title="Back 15s">⏪</button>
+      <button id="spPlay" class="btn" title="Play/Pause">▶</button>
+      <button id="spFwd" class="btn" title="Forward 15s">⏩</button>
+      <div class="label" id="spLabel">—</div>
+      <label style="margin-left:auto;color:#ddd">Speed:
+        <select id="spSpeed" style="background:transparent;color:inherit;border:0">
+          <option>0.8</option>
+          <option>1</option>
+          <option selected>1.25</option>
+          <option>1.5</option>
+          <option>2</option>
+        </select>
+      </label>
+    </div>
+
+    <!-- Search modal -->
+    <div id="searchModal" class="search-modal" role="dialog" aria-modal="true">
+      <div class="panel">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <input id="searchInputModal" style="flex:1;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#fff" placeholder="جستجو...">
+          <button id="searchClose" class="btn">Close ✖</button>
+        </div>
+        <div id="searchResults" class="search-results"></div>
+      </div>
+    </div>
+  </body>
+</html>
